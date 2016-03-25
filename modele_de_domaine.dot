@@ -1,0 +1,30 @@
+digraph modele {
+    //splines=ortho
+    rankdir=LR;
+    /* Entities */
+    Evenement  [label="Evenement| planifie : bool\l", shape="record"]
+    EvenementAvecEquipe [label="EvenementAvecEquipe|", shape="record"]
+    EvenementSansEquipe [label="EvenementSansEquipe|", shape="record"]
+    EvenementSansEquipe -> Evenement [arrowhead=empty]
+    EvenementAvecEquipe -> Evenement [arrowhead=empty]
+
+
+    Lieu [label="Lieu| nom : string\l type : string\l adresse : string\l coordGPS : coordGPSGoogle\l", shape="record"]
+    Activite [label="Activite| nom : string\l equipe : bool\l nbParticipant : int\l", shape="record"]
+    Adherent [label="Adherent| nom : string\l prenom : string\l mail : string\l adresse : string\l coordGPS : coordGPSGoogle\l", shape="record"]
+    Demande [label="Demande|", shape="record"]
+    Date [label="Date| jour : int\l mois : string\l annee : int\l", shape="record"] // Pas necessaire, pas à implementer plus tard
+
+    /* Relationships */
+    Adherent -> Demande [arrowhead=none,taillabel=1,headlabel="0…n"]
+    Evenement -> Demande [arrowhead=none,taillabel="0…1",headlabel="1…n"]
+    Activite -> Demande [arrowhead=ediamond,taillabel=1,headlabel="0…n"]
+    Activite -> Evenement [arrowhead=ediamond,taillabel=1,headlabel="0…n"]
+    Lieu -> Evenement [arrowhead=ediamond,taillabel="0…1",headlabel="0…n"]
+    Date -> Lieu [arrowhead=ediamond,taillabel="0…n",headlabel="0…n"]
+    Date -> Evenement [arrowhead=ediamond,taillabel=1,headlabel="0…n"]
+    Date -> Demande [arrowhead=ediamond,taillabel=1,headlabel="0…n"]
+    Adherent -> EvenementSansEquipe [arrowhead=ediamond,taillabel="1…n",headlabel="0…n"] // deux possible parceque 1 c’est vraiment pas malin
+    Adherent -> EvenementAvecEquipe [arrowhead=ediamond,taillabel="1…n",headlabel="0…n",label="Equipe B"]
+    Adherent -> EvenementAvecEquipe [arrowhead=ediamond,taillabel="1…n",headlabel="0…n",label="Equipe A"]
+}
