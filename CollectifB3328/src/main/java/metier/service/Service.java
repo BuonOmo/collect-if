@@ -82,7 +82,7 @@ public class Service {
             return dao.findById(AdherentId).getDemandes();
         } catch (Throwable ex) {
             System.err.println("DEBUG: id non valide");
-            return null;
+            throw new ServiceException("Id non valide");
         }
     }
 
@@ -98,7 +98,7 @@ public class Service {
         Demande dem = new Demande(act, ad, d);
         DemandeDao da = new DemandeDao();
         if (da.existe(dem))
-            throw new ServiceException("Demande déjà existante")
+            throw new ServiceException("Demande déjà existante");
 
         ad.addDemande(dem);
         JpaUtil.creerEntityManager();
@@ -173,6 +173,15 @@ public class Service {
             return null;
         }
     }
+    
+    /**
+     * Affiche tous les évenements dans la base de données
+     * @return
+     */
+    public List<Evenement> VoirEvenements () throws Throwable
+    {
+        return new EvenementDao().findAll();
+    }
 
     /**
      * Renvoi une activité en fonction de son nom
@@ -207,14 +216,7 @@ public class Service {
 
     public void EnvoyerMail () {} // Service Technique
 
-    /**
-     * Affiche tous les évenements dans la base de données
-     * @return
-     */
-    public List<Evenement> AfficherEvenements () throws Throwable
-    {
-        return new EvenementDao().findAll();
-    }
+
 
     /**
      * Associe un évenement et un lieu
