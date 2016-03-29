@@ -9,6 +9,8 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import javax.persistence.Entity;
+import javax.persistence.OneToMany;
+import javax.persistence.OneToOne;
 
 /**
  *
@@ -16,15 +18,17 @@ import javax.persistence.Entity;
  */
 @Entity
 public class EvenementAvecEquipe extends Evenement {
-    private List<Adherent> EquipeA;
-    private List<Adherent> EquipeB;
+    @OneToOne
+    private Equipe EquipeA;
+    @OneToOne
+    private Equipe EquipeB;
 
-    public void setEquipeA(List<Adherent> EquipeA) {
+    public void setEquipeA(Equipe EquipeA) {
         this.EquipeA = EquipeA;
     }
 
-    public EvenementAvecEquipe(List<Adherent> EquipeA, List<Adherent> EquipeB, Date date, List<Demande> demandes) {
-        super(date, demandes);
+    public EvenementAvecEquipe(Equipe EquipeA, Equipe EquipeB, Date date, List<Demande> demandes, Activite act) {
+        super(date, demandes, act);
         this.EquipeA = EquipeA;
         this.EquipeB = EquipeB;
     }
@@ -33,28 +37,37 @@ public class EvenementAvecEquipe extends Evenement {
     }
     
 
-    public void setEquipeB(List<Adherent> EquipeB) {
+    public void setEquipeB(Equipe EquipeB) {
         this.EquipeB = EquipeB;
     }
 
-    public List<Adherent> getEquipeA() {
+    public Equipe getEquipeA() {
         return EquipeA;
     }
 
-    public List<Adherent> getEquipeB() {
+    public Equipe getEquipeB() {
         return EquipeB;
     }
 
     @Override
     public String toString() {
-        return "EvenementAvecEquipe{" + "EquipeA=" + EquipeA + ", EquipeB=" + EquipeB + '}';
+        String toReturn = "Date événement : " + date.toString().substring(0,10) + "\nActivité : " + activite.getDenomination();
+        toReturn += "\nÉquipe A :";
+        for(Adherent ad : EquipeA.getJoueurs()) {
+            toReturn += "\n\tAdhérent : " + ad.toString();
+        }
+        toReturn += "\nÉquipe B :";
+        for(Adherent ad : EquipeB.getJoueurs()) {
+            toReturn += "\n\tAdhérent : " + ad.toString();
+        }
+        return toReturn;
     }
 
     @Override
     public List<Adherent> getParticipants() {
-        List<Adherent> adh = new ArrayList();
-        adh.addAll(EquipeA);
-        adh.addAll(EquipeB);
+        List<Adherent> adh = new ArrayList<>();
+        adh.addAll(EquipeA.getJoueurs());
+        adh.addAll(EquipeB.getJoueurs());
         return adh;
     }
     

@@ -38,7 +38,7 @@ public class Demande implements Serializable
 
     @Override
     public String toString() {
-        return "Demande{" + "id=" + id + ", activite=" + activite + ", adherent=" + adherent + ", date=" + date + ", hasEvenement=" + hasEvenement + '}';
+        return "Activité : " + activite.getDenomination() + "\nDate demandée : " + date.toString().substring(0,10); 
     }
 
     public boolean isHasEvenement() {

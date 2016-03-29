@@ -54,7 +54,9 @@ public class Activite implements Serializable {
 
     @Override
     public String toString() {
-        return "Activite{" + "id=" + id + ", denomination=" + denomination + ", parEquipe=" + parEquipe + ", nbParticipants=" + nbParticipants + '}';
+        if(parEquipe)
+            return "\n[" + id + "] " + denomination + "\nPar équipe : Oui \nNombre de participants : " + nbParticipants;
+        return "\n[" + id + "] " + denomination + "\nPar équipe : Non \nNombre de participants : " + nbParticipants;
     }
        
 }
