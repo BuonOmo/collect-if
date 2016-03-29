@@ -58,6 +58,7 @@ public class Service {
         JpaUtil.validerTransaction();
         JpaUtil.fermerEntityManager();
     }
+
     /**
      * TODO verifier les cas de null ou de doublons
      * @param nom
@@ -266,12 +267,56 @@ public class Service {
     }
 
     /**
+     * Affiche tous les évenements non planifies dans la base de données
+     * @return
+     */
+    public List<Evenement> voirEvenementsNonPlanifies ()
+    {
+        JpaUtil.creerEntityManager();
+        List<Evenement> evts = new ArrayList<>();
+        try {
+            for(Evenement e : new EvenementDao().findAll())
+            {
+                if(!e.isPlanifie())
+                    evts.add(e);
+            }
+            JpaUtil.fermerEntityManager();
+            return evts;
+        } catch (Throwable ex) {
+            JpaUtil.fermerEntityManager();
+            return null;
+        }
+    }
+
+    /**
+     * Affiche tous les évenements planifies dans la base de données
+     * @return
+     */
+    public List<Evenement> voirEvenementsPlanifies ()
+    {
+        JpaUtil.creerEntityManager();
+        List<Evenement> evts = new ArrayList<>();
+        try {
+            for(Evenement e : new EvenementDao().findAll())
+            {
+                if(e.isPlanifie())
+                    evts.add(e);
+            }
+            JpaUtil.fermerEntityManager();
+            return evts;
+        } catch (Throwable ex) {
+            JpaUtil.fermerEntityManager();
+            return null;
+        }
+    }
+
+    /**
      * Permet de repérer les différents participants à un evenement
-     * @param  evt [description]
+     * @param  evt
      * @return     Liste de coordonnées au format LatLng (getLat et getLng
      *             renvoient des entiers)
      */
-    public List<LatLng> LocaliserParticpants(Evenement evt)
+    public List<LatLng> voirParticpants(Evenement evt)
     {
         EvenementDao edao = new EvenementDao();
         List <LatLng> toReturn = new ArrayList();
@@ -283,47 +328,38 @@ public class Service {
     }
 
     /**
-     *  Trouve les lieux les plus proches des membres d'un évenement.
+     *  Trouve les lieux les plus proches des membres d'un évènement.
      * @param evt
      * @param nombre nombre de lieux affichés
      * @return
      */
-    public List<Lieu> trouverLieuxPlusProche(Evenement evt, int nombre) // TODO tester cette methode
-    {
-        try {
-            List<LatLng> locPart = LocaliserParticpants(evt);
-            int barycentreLat = 0;
-            int barycentreLng = 0;
-            for (LatLng coord : locPart)
-            {
-                barycentreLat+= coord.getLat;
-                barycentreLng+= coord.getLng;
-            }
-            barycentreLng/=locPart.size();
-            barycentreLat/=locPart.size();
+     public List<Lieu> voirLieuxPlusProche(Evenement evt, int nombre)
+     {
+         try {
+             List<LatLng> locPart = LocaliserParticipants(evt);
+             int barycentreLat = 0;
+             int barycentreLng = 0;
+             for (LatLng coord : locPart)
+             {
+                 barycentreLat+= coord.lat;
+                 barycentreLng+= coord.lng;
+             }
+             barycentreLng/=locPart.size();
+             barycentreLat/=locPart.size();
 
-            ArrayList<Lieu> lieux = new LieuDao().findAll();
-            ArrayList<Lieu> plusProches = new ArrayList();
-            plusProches.push(lieux.getFirst());
-            for (Lieu lieu : lieux)
-            {
-                int i = 0;
-                for (Lieu tmp : plusProches)
-                {
-                    if (abs(lieu.getLng - barycentreLng)+abs(lieu.getLat - barycentreLat) <
-                        abs(tmp.getLng-barycentreLng)+abs(tmp.getLat - barycentreLat))
-                    {
-                        plusProches.add(i, lieu);
-                    }
-                    ++i;
-                }
-            }
-            return plusProches.subList(0, nombre);
-        } catch (Throwable ex) {
-            Logger.getLogger(Service.class.getName()).log(Level.SEVERE, null, ex);
-            return null;
-        }
-    }
+             List<Lieu> lieux = new LieuDao().findAll();
+             ArrayList<Lieu> plusProches = new ArrayList();
+             plusProches.addAll(lieux);
+             tri_selection(plusProches, barycentreLng, barycentreLat);
+
+             if(nombre < plusProches.size())
+                 return plusProches.subList(0, nombre);
+             return plusProches;
+
+         } catch (Throwable ex) {
+             return null;
+         }
+     }
 
 
     //------------- MODIFICATION DANS LA BASE DE DONNEES -----------------
@@ -346,4 +382,34 @@ public class Service {
         ServiceTechnique.EnvoyerMail(evt);
     }
 
+
+    //------------- METHODES PRIVEES -------------------------------------
+
+    /**
+     * Tri le tableau passé en paramètre selon la distance par rapport
+     * à barycentreLng et barycentreLat
+     * @param t
+     * @param barycentreLng
+     * @param barycentreLat
+     */
+    private static void tri_selection(ArrayList<Lieu> t, int barycentreLng, int barycentreLat)
+    {
+        for(int i = 0; i < t.size(); i++) {
+            int min = i;
+            for(int j = i + 1 ; j < t.size(); j++)
+            {
+                if(abs(t.get(j).getLongitude() - barycentreLng)+abs(t.get(j).getLatitude() - barycentreLat) <
+                        abs(t.get(min).getLongitude()-barycentreLng)+abs(t.get(min).getLatitude() - barycentreLat))
+                {
+                    min = j;
+                }
+            }
+            if(min != i)
+            {
+                Lieu tmp = t.get(i);
+                t.set(i,t.get(min));
+                t.set(min, tmp);
+            }
+        }
+    }
 }
