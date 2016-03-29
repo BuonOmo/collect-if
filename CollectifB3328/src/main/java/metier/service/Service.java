@@ -1,101 +1,101 @@
 
-package metier.service;
+
 import com.google.maps.model.LatLng;
 import dao.ActiviteDao;
 import dao.AdherentDao;
 import dao.DemandeDao;
-import dao.EquipeDao;
 import dao.EvenementDao;
 import dao.JpaUtil;
 import dao.LieuDao;
-import static java.lang.Math.abs;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import metier.modele.Activite;
 import metier.modele.Adherent;
 import metier.modele.Demande;
-import metier.modele.Equipe;
 import metier.modele.Evenement;
 import metier.modele.EvenementAvecEquipe;
 import metier.modele.EvenementSansEquipe;
 import metier.modele.Lieu;
+import sun.misc.GC;
+import sun.text.normalizer.NormalizerImpl;
 import util.GeoTest;
+package metier.service;
 /**
  *
  * @author ubuonomo
  */
 public class Service {
-    
-     /**
-     * Inscription de l'adherent a
-     * @param a 
-     * @throws Throwable
+
+
+    //------------- ECRITURE DANS LA BASE DE DONNEES ---------------------
+
+    /**
+     * Ajoute une activite à la base de données
+     * @param a activié à ajouter
      */
-    public void Inscription (Adherent a) throws Throwable
+    public void AjouterActivite(Activite a) throws ServiceException
     {
         JpaUtil.creerEntityManager();
-        AdherentDao adao = new AdherentDao();
-        if(adao.findByMail(a.getMail()) == null)
-        {
-            a.setCoordonnees(GeoTest.getLatLng(a.getAdresse()));
-            JpaUtil.ouvrirTransaction();
-            new AdherentDao().create(a);
-            JpaUtil.validerTransaction();            
-        }
-        else
-        {
-            Exception e = new Exception();
-            throw e;
-        }
+        JpaUtil.ouvrirTransaction();
+        new ActiviteDao().create(a);
+        JpaUtil.validerTransaction();
         JpaUtil.fermerEntityManager();
-        
     }
-    
+
     /**
-     * Renvoi l’adherent s’il est connecté
-     * @param mail
-     * @return Adherent
+     * Ajoute un Lieu à la base de données
+     * @param l lieu à ajouter
      */
-    public Adherent Connexion (String mail)
+    public void AjouterLieu(Lieu l) throws ServiceException
     {
-        try {
-            JpaUtil.creerEntityManager();
-            AdherentDao adao = new AdherentDao();
-            Adherent ad = adao.findByMail(mail);
-            JpaUtil.fermerEntityManager();
-            return ad;
-        } catch (Throwable ex) {
-            Logger.getLogger(Service.class.getName()).log(Level.SEVERE, null, ex);
-        }
-        return null;
+        JpaUtil.creerEntityManager();
+        JpaUtil.ouvrirTransaction();
+        new LieuDao().create(l);
+        JpaUtil.validerTransaction();
+        JpaUtil.fermerEntityManager();
     }
-    
+
+    /**
+     * TODO verifier les cas de null ou de doublons
+     * @param nom
+     * @param prenom
+     * @param postale adresse postale
+     * @param mail adresse mail
+     * @throws Throwable
+     */
+    public void Inscription (Adherent a) throws ServiceException
+    {
+        a.setCoordonnees(GeoTest.getLatLng(a.getAdresse()));
+        JpaUtil.creerEntityManager();
+        JpaUtil.ouvrirTransaction();
+        new AdherentDao().create(a);
+        JpaUtil.validerTransaction();
+        JpaUtil.fermerEntityManager();
+    }
+
     /**
      * Permet d’envoyer une requete d’evenement pour un adherent
      * Renvoi une Exception si la demande existe déjà
      * @param   ad  Adherent demandant l’evenement
      * @param   act Activité souhaitée par l’adherent
      * @param   d   Date ou l’adherent souhaite réaliser l’évenement
-     * @return Vrai si la demande a été enregistrée, faux sinon.
-     * @throws java.lang.Throwable
-     */       
-    public boolean demanderEvenement(Adherent ad, Activite act, Date d) throws Throwable
+     */
+    public void demanderEvenement(Adherent ad, Activite act, Date d) throws ServiceException
     {
         Demande dem = new Demande(act, ad, d);
         DemandeDao da = new DemandeDao();
         if (da.existe(dem))
-            return false;
-        
+            throw new ServiceException("Demande déjà existante");
+
         ad.addDemande(dem);
         JpaUtil.creerEntityManager();
         JpaUtil.ouvrirTransaction();
         new AdherentDao().update(ad);
         da.create(dem);
-        JpaUtil.validerTransaction();
-        JpaUtil.ouvrirTransaction();
         if (da.verifNombre(act, d))
         {
             Evenement ev;
@@ -103,9 +103,9 @@ public class Service {
             if (act.isParEquipe())
             {
                 int c = 1;
-                List<Adherent> eqA,eqB;
-                eqA = new ArrayList<>();
-                eqB = new ArrayList<>();
+                List eqA,eqB;
+                eqA = new ArrayList<Adherent>();
+                eqB = new ArrayList<Adherent>();
 
                 for (Demande iterDemande : allDemande)
                 {
@@ -119,52 +119,256 @@ public class Service {
                         eqB.add(iterDemande.getAdherent());
                     }
                 }
-                Equipe equipeA = new Equipe(eqA);
-                Equipe equipeB = new Equipe(eqB);
-                EquipeDao eqdao = new EquipeDao();
-                eqdao.create(equipeA);
-                eqdao.create(equipeB);
-                
-                ev = new EvenementAvecEquipe(equipeA, equipeB, d, allDemande, act);
+                ev = new EvenementAvecEquipe(eqA, eqB, d, allDemande);
             }
             else
             {
-                List joueurs = new ArrayList<>();
+                List joueurs = new ArrayList<Adherent>();
                   for (Demande iterDemande : allDemande)
                 {
                     joueurs.add(iterDemande.getAdherent());
                 }
-                  ev = new EvenementSansEquipe(joueurs, d, allDemande, act);
+                  ev = new EvenementSansEquipe(joueurs, d, allDemande);
             }
             new EvenementDao().create(ev);
             da.validerDemande(allDemande); // a tester
         }
         JpaUtil.validerTransaction();
-        JpaUtil.fermerEntityManager();
-        return true;
     }
-       
+
+
+    //------------- LECTURE UNIQUE DANS LA BASE DE DONNEES ---------------
+
     /**
-     * Renvoie l'activité correspondant au nom.
-     * @param name
-     * @return L'activité correspondante
+     * Renvoi l’adherent s’il est connecté
+     * @param mail
+     * @return Adherent
      */
-    public Activite ObtenirActivite(String name) {
-        JpaUtil.creerEntityManager();        
+    public Adherent Connexion (String mail) throws ServiceException
+    {
+        try {
+            JpaUtil.creerEntityManager();
+            AdherentDao adao = new AdherentDao();
+            JpaUtil.fermerEntityManager();
+
+            return adao.findByMail(mail);
+        } catch (Throwable ex) {
+            throw new ServiceException("Le mail est inconnu");
+        }
+    }
+
+    /**
+     * Renvoi une activité en fonction de son nom
+     * Lance une Exception si l’activité n’est pas dans la base de données
+     * @param  name nom de l’activité
+     * @return      Activité recherchée
+     */
+    public Activite ObtenirActivite(String name) throws ServiceException
+    {
+        JpaUtil.creerEntityManager();
         try {
             return new ActiviteDao().findByName(name);
         } catch (Throwable ex) {
+            throw new ServiceException("activité inexistante");
+        }
+    }
+
+    /**
+     * Renvoi un evenement en fonction de son ID, peut lancer des
+     * exceptions si aucun évenement ne correspond à l’id
+     * @param  id identifiant de l’evenement
+     * @return    Evenement correspondant à l’id
+     */
+    public Evenement ObtenirEvenement(Long id) throws ServiceException
+    {
+        try {
+            return new EvenementDao().findById(id);
+        } catch (Throwable ex) {
+            throw new ServiceException("evenement inexistant");
+        }
+    }
+
+    //------------- LECTURE DE LISTE DANS LA BASE DE DONNEES -------------
+
+    /**
+     * Permet de voir l’historique des demandes d’un adherent
+     * @param  AdherentId Id de l’adherent souhaité (peut se faire avec
+     *                    la méthode getId)
+     * @return            liste des demandes
+     */
+    public List<Demande> voirDemandes(Long AdherentId)
+    {
+        JpaUtil.creerEntityManager();
+        AdherentDao dao = new AdherentDao();
+        try {
+            return dao.findById(AdherentId).getDemandes();
+        } catch (Throwable ex) {
+            System.err.println("DEBUG: id non valide");
+            throw new ServiceException("Id non valide");
+        }
+    }
+
+    /**
+     * Permet de voir toutes les activités
+     * @return Liste des activités
+     */
+    List<Activite> voirActivites ()
+    {
+        JpaUtil.creerEntityManager();
+        try {
+            return new ActiviteDao().findAll();
+        } catch (Throwable ex) {
+            Logger.getLogger(Service.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return null;
+    }
+
+    /**
+     * Permet de voir tous les adherents
+     * @return Liste des adherents
+     */
+    List<Adherent> voirAdherent()
+    {
+        JpaUtil.creerEntityManager();
+        try {
+            return new AdherentDao().findAll();
+        } catch (Throwable ex) {
+            return null;
+        }
+    }
+
+    /**
+     * Affiche tous les évenements dans la base de données.
+     * @return
+     */
+    public List<Evenement> VoirEvenements ()
+    {
+        try
+        {
+            return new EvenementDao().findAll();
+        } catch (Throwable e) {
+            return null;
+        }
+    }
+
+    /**
+     * Renvoi toutes les demandes
+     * @return   Liste de demandes
+     */
+    public List<Demande> voirDemandes()
+    {
+        JpaUtil.creerEntityManager();
+        try {
+            return new DemandeDao().findAll();
+        } catch (Throwable ex) {
+            Logger.getLogger(Service.class.getName()).log(Level.SEVERE, null, ex);
+            return null;
+        }
+    }
+
+    /**
+     * Affiche tous les évenements non planifies dans la base de données
+     * @return
+     */
+    public List<Evenement> voirEvenementsNonPlanifies ()
+    {
+        JpaUtil.creerEntityManager();
+        List<Evenement> evts = new ArrayList<>();
+        try {
+            for(Evenement e : new EvenementDao().findAll())
+            {
+                if(!e.isPlanifie())
+                    evts.add(e);
+            }
+            JpaUtil.fermerEntityManager();
+            return evts;
+        } catch (Throwable ex) {
             JpaUtil.fermerEntityManager();
             return null;
-        }        
+        }
     }
-    
-            
+
     /**
-     * Affecte le lieu à l'évènement.
-     * @param evt 
-     * @param lieu 
-     * @throws java.lang.Throwable 
+     * Affiche tous les évenements planifies dans la base de données
+     * @return
+     */
+    public List<Evenement> voirEvenementsPlanifies ()
+    {
+        JpaUtil.creerEntityManager();
+        List<Evenement> evts = new ArrayList<>();
+        try {
+            for(Evenement e : new EvenementDao().findAll())
+            {
+                if(e.isPlanifie())
+                    evts.add(e);
+            }
+            JpaUtil.fermerEntityManager();
+            return evts;
+        } catch (Throwable ex) {
+            JpaUtil.fermerEntityManager();
+            return null;
+        }
+    }
+
+    /**
+     * Permet de repérer les différents participants à un evenement
+     * @param  evt
+     * @return     Liste de coordonnées au format LatLng (getLat et getLng
+     *             renvoient des entiers)
+     */
+    public List<LatLng> voirParticpants(Evenement evt)
+    {
+        EvenementDao edao = new EvenementDao();
+        List <LatLng> toReturn = new ArrayList();
+        for (Adherent a : edao.obtenirParticipants(evt))
+        {
+            toReturn.add(a.getCoordonnees());
+        }
+        return toReturn;
+    }
+
+    /**
+     *  Trouve les lieux les plus proches des membres d'un évènement.
+     * @param evt
+     * @param nombre nombre de lieux affichés
+     * @return
+     */
+     public List<Lieu> voirLieuxPlusProche(Evenement evt, int nombre)
+     {
+         try {
+             List<LatLng> locPart = LocaliserParticipants(evt);
+             int barycentreLat = 0;
+             int barycentreLng = 0;
+             for (LatLng coord : locPart)
+             {
+                 barycentreLat+= coord.lat;
+                 barycentreLng+= coord.lng;
+             }
+             barycentreLng/=locPart.size();
+             barycentreLat/=locPart.size();
+
+             List<Lieu> lieux = new LieuDao().findAll();
+             ArrayList<Lieu> plusProches = new ArrayList();
+             plusProches.addAll(lieux);
+             tri_selection(plusProches, barycentreLng, barycentreLat);
+
+             if(nombre < plusProches.size())
+                 return plusProches.subList(0, nombre);
+             return plusProches;
+
+         } catch (Throwable ex) {
+             return null;
+         }
+     }
+
+
+    //------------- MODIFICATION DANS LA BASE DE DONNEES -----------------
+
+
+    /**
+     * Associe un évenement et un lieu
+     * @param evt
+     * @param lieu
      */
     public void AffecterLieux(Evenement evt, Lieu lieu) throws Throwable
     {
@@ -177,66 +381,25 @@ public class Service {
         JpaUtil.fermerEntityManager();
         ServiceTechnique.EnvoyerMail(evt);
     }
-    
-    public List<LatLng> LocaliserParticipants(Evenement evt)
-    {
-        EvenementDao edao = new EvenementDao();
-        List <LatLng> toReturn = new ArrayList();
-        for (Adherent a : edao.obtenirParticipants(evt))
-        {
-            toReturn.add(a.getCoordonnees());
-        }
-        return toReturn;
-    }
-    
-    /**
-     *  Trouve les lieux les plus proches des membres d'un évènement.
-     * @param evt
-     * @param nombre nombre de lieux affichés
-     * @return 
-     */
-    public List<Lieu> trouverLieuxPlusProche(Evenement evt, int nombre)
-    {
-        try {
-            List<LatLng> locPart = LocaliserParticipants(evt);
-            int barycentreLat = 0;
-            int barycentreLng = 0;
-            for (LatLng coord : locPart)
-            {
-                barycentreLat+= coord.lat;
-                barycentreLng+= coord.lng;
-            }
-            barycentreLng/=locPart.size();
-            barycentreLat/=locPart.size();
 
-            List<Lieu> lieux = new LieuDao().findAll();
-            ArrayList<Lieu> plusProches = new ArrayList();
-            plusProches.addAll(lieux);
-            tri_selection(plusProches, barycentreLng, barycentreLat);
-            
-            if(nombre < plusProches.size())
-                return plusProches.subList(0, nombre);
-            return plusProches;
-            
-        } catch (Throwable ex) {
-            Logger.getLogger(Service.class.getName()).log(Level.SEVERE, null, ex);
-            return null;
-        }
-    }
-    
+
+    //------------- METHODES PRIVEES -------------------------------------
+
     /**
-     * Tri le tableau passé en paramètre selon la distance par rapport à barycentreLng et barycentreLat
+     * Tri le tableau passé en paramètre selon la distance par rapport
+     * à barycentreLng et barycentreLat
      * @param t
      * @param barycentreLng
-     * @param barycentreLat 
+     * @param barycentreLat
      */
-    private static void tri_selection(ArrayList<Lieu> t, int barycentreLng, int barycentreLat) {
+    private static void tri_selection(ArrayList<Lieu> t, int barycentreLng, int barycentreLat)
+    {
         for(int i = 0; i < t.size(); i++) {
             int min = i;
-            for(int j = i + 1 ; j < t.size(); j++) 
+            for(int j = i + 1 ; j < t.size(); j++)
             {
                 if(abs(t.get(j).getLongitude() - barycentreLng)+abs(t.get(j).getLatitude() - barycentreLat) <
-                        abs(t.get(min).getLongitude()-barycentreLng)+abs(t.get(min).getLatitude() - barycentreLat)) 
+                        abs(t.get(min).getLongitude()-barycentreLng)+abs(t.get(min).getLatitude() - barycentreLat))
                 {
                     min = j;
                 }
@@ -245,203 +408,8 @@ public class Service {
             {
                 Lieu tmp = t.get(i);
                 t.set(i,t.get(min));
-                t.set(min, tmp);                
-            }                
-        }
-    }
-    
-    /**
-     * Récupère l'evenement 
-     * @param id
-     * @return
-     * @throws Throwable 
-     */
-    public Evenement ObtenirEvenement(Long id) throws Throwable {
-        try {
-            return new EvenementDao().findById(id);
-        } catch (Throwable ex) {
-            throw ex;
-        }
-    }
-    
-    /********************* Fonctions d'insertion en base au démarrage **********************/
-    
-    /**
-     * Insertion en base de nb adhérents.
-     * @param nb 
-     */
-    public void InsertionAdherentsEnBase(int nb) {
-        JpaUtil.creerEntityManager();
-        AdherentDao adao = new AdherentDao();
-        JpaUtil.ouvrirTransaction();
-        for(int i = 1; i < nb+1; i++)
-        {
-            Adherent a = new Adherent("nom"+i, "prenom"+i, i+" Avenue des champs-elysées", "mail"+i);
-            a.setCoordonnees(GeoTest.getLatLng(a.getAdresse()));
-            try {
-                adao.create(a);
-            } catch (Throwable ex) {
-                Logger.getLogger(Service.class.getName()).log(Level.SEVERE, null, ex);
+                t.set(min, tmp);
             }
         }
-        JpaUtil.validerTransaction();
-        JpaUtil.fermerEntityManager();
     }
-
-    /**
-     * Insertion de nb activités en base.
-     * @param nb 
-     */
-    public void InsertionActivitesEnBase(int nb) {
-        JpaUtil.creerEntityManager();
-        JpaUtil.ouvrirTransaction();
-        ActiviteDao adao = new ActiviteDao();
-        boolean parEquipe;
-        for(int i = 1; i < nb+1; i++)
-        {
-            parEquipe = i%2==0;
-                    
-            Activite ac = new Activite("Activité "+i, parEquipe, i);
-            try {
-                adao.create(ac);
-            } catch (Throwable ex) {
-                Logger.getLogger(Service.class.getName()).log(Level.SEVERE, null, ex);
-            }
-        }
-        JpaUtil.validerTransaction();
-        JpaUtil.fermerEntityManager();
-    }
-
-    /**
-     * Insertion en base de nb Lieux au démarrage.
-     * @param nb 
-     */
-    public void InsertionLieuxEnBase(int nb) {
-        JpaUtil.creerEntityManager();
-        LieuDao ldao = new LieuDao();
-        JpaUtil.ouvrirTransaction();
-        for(int i = 1; i < nb+1; i++)
-        {
-           Lieu l = new Lieu("Lieu " + i, "Type " +i, i*2 + " Rue de la paix");
-           l.setCoordonnees(GeoTest.getLatLng(l.getAdresse()));
-            try {
-                ldao.create(l);
-            } catch (Throwable ex) {
-                Logger.getLogger(Service.class.getName()).log(Level.SEVERE, null, ex);
-            }
-        }
-        JpaUtil.validerTransaction();
-        JpaUtil.fermerEntityManager();
-    }
-
-    /********************* Fin fonctions d'insertion en base au démarrage *****************/
-    
-    
-    /********************* Fonctions pour les affichages de listes ************************/    
-    
-    /**
-     * Renvoi la liste des demandes
-     * @param AdherentId
-     * @return Liste des demandes pour l'adherent
-     */
-    public List<Demande> voirHistorique(Long AdherentId)
-    {
-        JpaUtil.creerEntityManager();
-        AdherentDao dao = new AdherentDao();
-        try {
-            return dao.findById(AdherentId).getDemandes();
-        } catch (Throwable ex) {
-            System.err.println("DEBUG: id non valide");            
-        }
-        JpaUtil.fermerEntityManager();
-        return null;
-    }    
-    /**
-     * Retourne toutes les activités
-     * @return
-     */
-    public List<Activite> voirActivites ()
-    {
-        JpaUtil.creerEntityManager();
-        try {
-            return new ActiviteDao().findAll();
-        } catch (Throwable ex) {
-            Logger.getLogger(Service.class.getName()).log(Level.SEVERE, null, ex);
-        }
-        JpaUtil.fermerEntityManager();
-        return null;
-    }
-    
-    /**
-     * Retourne la liste des adhérents
-     * @return
-     */
-    public List<Adherent> voirAdherents()
-    {
-        JpaUtil.creerEntityManager();
-        try {
-            return new AdherentDao().findAll();
-        } catch (Throwable ex) {
-            JpaUtil.fermerEntityManager();
-            return null;
-        }        
-    }
-    
-    /**
-     * Retourne tous les lieux
-     * @return
-     */
-    public List<Lieu> voirLieux() {
-        JpaUtil.creerEntityManager();
-        try {
-            return new LieuDao().findAll();
-        } catch (Throwable ex) {
-            JpaUtil.fermerEntityManager();
-            return null;
-        }  
-    }
-    
-    /**
-     * Affiche tous les évenements non planifies dans la base de données
-     * @return 
-     */
-    public List<Evenement> voirEvenementsNonPlanifies ()
-    {
-        JpaUtil.creerEntityManager();
-        List<Evenement> evts = new ArrayList<>();
-        try {
-            for(Evenement e : new EvenementDao().findAll())
-            {
-                if(!e.isPlanifie())
-                    evts.add(e);
-            }
-            return evts;
-        } catch (Throwable ex) {
-            JpaUtil.fermerEntityManager();
-            return null;
-        }
-    }
-    
-    /**
-     * Affiche tous les évenements planifies dans la base de données
-     * @return 
-     */
-    public List<Evenement> voirEvenementsPlanifies ()
-    {
-        JpaUtil.creerEntityManager();
-        List<Evenement> evts = new ArrayList<>();
-        try {
-            for(Evenement e : new EvenementDao().findAll())
-            {
-                if(e.isPlanifie())
-                    evts.add(e);
-            }
-            return evts;
-        } catch (Throwable ex) {
-            JpaUtil.fermerEntityManager();
-            return null;
-        }
-    }
-    
-    /********************* Fin fonctions pour les affichages de listes ************************/
 }
