@@ -80,7 +80,7 @@ public class Lieu implements Serializable {
 
     @Override
     public String toString() {
-        return "Lieu{" + "id=" + id + ", denomination=" + denomination + ", description=" + description + ", adresse=" + adresse + ", longitude=" + longitude + ", latitude=" + latitude + '}';
+        return "\n[" + id + "] " + denomination + "\nType : " + description + "\n" + adresse;
     }
     
     

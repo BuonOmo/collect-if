@@ -42,11 +42,11 @@ public class Adherent implements Serializable {
     }
 
     public Adherent(String nom, String prenom, String adresse,  String mail) {
-        this.nom = nom;
-        this.prenom = prenom;
+        this.nom = nom.toUpperCase();
+        this.prenom = prenom.substring(0,1).toUpperCase() + prenom.substring(1);
         this.mail = mail;
         this.adresse = adresse;
-        this.demandes = new ArrayList<Demande>();
+        this.demandes = new ArrayList<>();
     }
 
     public Long getId() {
@@ -104,6 +104,6 @@ public class Adherent implements Serializable {
 
     @Override
     public String toString() {
-        return "Adherent{" + "id=" + id + ", nom=" + nom + ", prenom=" + prenom + ", mail=" + mail + ", adresse=" + adresse + ", longitude=" + longitude + ", latitude=" + latitude + '}';
+        return id + " - " + prenom + " " + nom;
     }
 }

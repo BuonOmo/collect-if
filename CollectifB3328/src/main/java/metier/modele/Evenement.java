@@ -28,27 +28,28 @@ import javax.persistence.TemporalType;
 public abstract class Evenement implements Serializable {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
-    private Long id;
-    private boolean planifie;
+    protected Long id;
+    protected boolean planifie;
     @ManyToOne
-    private Lieu lieu;
+    protected Lieu lieu;
 
     @Temporal (TemporalType.DATE)
-    private Date date;
+    protected Date date;
     @OneToMany
-    private List<Demande> demandes;
+    protected List<Demande> demandes;
     @ManyToOne
-    private Activite activite;
+    protected Activite activite;
     
     
     
     public Evenement() {
     }
     
-    public Evenement(Date date, List<Demande> demandes) {
+    public Evenement(Date date, List<Demande> demandes, Activite act) {
         this.planifie = false;
         this.lieu = null;
         this.date = date;
+        this.activite = act;
         this.demandes = demandes;
     }
 
