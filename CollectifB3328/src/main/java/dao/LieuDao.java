@@ -6,17 +6,17 @@ import javax.persistence.Query;
 import metier.modele.Lieu;
 
 public class LieuDao {
-    
+
     public void create(Lieu lieu) throws Throwable {
         EntityManager em = JpaUtil.obtenirEntityManager();
         try {
             em.persist(lieu);
         }
         catch(Exception e) {
-            throw e;
+            throw new ServiceException ("Impossible de creer le lieu");
         }
     }
-    
+
     public Lieu update(Lieu lieu) throws Throwable {
         EntityManager em = JpaUtil.obtenirEntityManager();
         try {
@@ -27,7 +27,7 @@ public class LieuDao {
         }
         return lieu;
     }
-    
+
     public Lieu findById(long id) throws Throwable {
         EntityManager em = JpaUtil.obtenirEntityManager();
         Lieu lieu = null;
@@ -39,7 +39,7 @@ public class LieuDao {
         }
         return lieu;
     }
-    
+
     public List<Lieu> findAll() throws Throwable {
         EntityManager em = JpaUtil.obtenirEntityManager();
         List<Lieu> lieux = null;
@@ -50,7 +50,7 @@ public class LieuDao {
         catch(Exception e) {
             throw e;
         }
-        
+
         return lieux;
     }
 }

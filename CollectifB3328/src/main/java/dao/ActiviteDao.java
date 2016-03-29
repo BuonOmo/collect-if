@@ -6,17 +6,17 @@ import javax.persistence.Query;
 import metier.modele.Activite;
 
 public class ActiviteDao {
-    
+
     public void create(Activite activite) throws Throwable {
         EntityManager em = JpaUtil.obtenirEntityManager();
         try {
             em.persist(activite);
         }
         catch(Exception e) {
-            throw e;
+            throw new ServiceException("Impossible de creer l’activité");
         }
     }
-    
+
     public Activite update(Activite activite) throws Throwable {
         EntityManager em = JpaUtil.obtenirEntityManager();
         try {
@@ -27,7 +27,7 @@ public class ActiviteDao {
         }
         return activite;
     }
-    
+
     public Activite findById(long id) throws Throwable {
         EntityManager em = JpaUtil.obtenirEntityManager();
         try {
@@ -37,7 +37,7 @@ public class ActiviteDao {
             return null;
         }
     }
-    
+
     public List<Activite> findAll() throws Throwable {
         EntityManager em = JpaUtil.obtenirEntityManager();
         List<Activite> activites = null;
@@ -48,7 +48,7 @@ public class ActiviteDao {
         catch(Exception e) {
             throw e;
         }
-        
+
         return activites;
     }
 

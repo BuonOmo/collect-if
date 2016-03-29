@@ -30,6 +30,34 @@ package metier.service;
  */
 public class Service {
 
+
+    //------------- ECRITURE DANS LA BASE DE DONNEES ---------------------
+
+    /**
+     * Ajoute une activite à la base de données
+     * @param a activié à ajouter
+     */
+    public void AjouterActivite(Activite a) throws ServiceException
+    {
+        JpaUtil.creerEntityManager();
+        JpaUtil.ouvrirTransaction();
+        new ActiviteDao().create(a);
+        JpaUtil.validerTransaction();
+        JpaUtil.fermerEntityManager();
+    }
+
+    /**
+     * Ajoute un Lieu à la base de données
+     * @param l lieu à ajouter
+     */
+    public void AjouterLieu(Lieu l) throws ServiceException
+    {
+        JpaUtil.creerEntityManager();
+        JpaUtil.ouvrirTransaction();
+        new LieuDao().create(l);
+        JpaUtil.validerTransaction();
+        JpaUtil.fermerEntityManager();
+    }
     /**
      * TODO verifier les cas de null ou de doublons
      * @param nom
@@ -46,44 +74,6 @@ public class Service {
         new AdherentDao().create(a);
         JpaUtil.validerTransaction();
         JpaUtil.fermerEntityManager();
-    }
-
-    /**
-     * Renvoi l’adherent s’il est connecté
-     * @param mail
-     * @return Adherent
-     */
-    public Adherent Connexion (String mail) throws ServiceException
-    {
-        try {
-            JpaUtil.creerEntityManager();
-            AdherentDao adao = new AdherentDao();
-            JpaUtil.fermerEntityManager();
-
-            return adao.findByMail(mail);
-        } catch (Throwable ex) {
-            Logger.getLogger(Service.class.getName()).log(Level.SEVERE, null, ex);
-            throw new ServiceException("Le mail est inconnu");
-        }
-        return null;
-    }
-
-    /**
-     * Permet de voir l’historique des demandes d’un adherent
-     * @param  AdherentId Id de l’adherent souhaité (peut se faire avec
-     *                    la méthode getId)
-     * @return            liste des demandes
-     */
-    public List<Demande> voirHistorique(Long AdherentId)
-    {
-        JpaUtil.creerEntityManager();
-        AdherentDao dao = new AdherentDao();
-        try {
-            return dao.findById(AdherentId).getDemandes();
-        } catch (Throwable ex) {
-            System.err.println("DEBUG: id non valide");
-            throw new ServiceException("Id non valide");
-        }
     }
 
     /**
@@ -145,6 +135,78 @@ public class Service {
         JpaUtil.validerTransaction();
     }
 
+
+    //------------- LECTURE UNIQUE DANS LA BASE DE DONNEES ---------------
+
+    /**
+     * Renvoi l’adherent s’il est connecté
+     * @param mail
+     * @return Adherent
+     */
+    public Adherent Connexion (String mail) throws ServiceException
+    {
+        try {
+            JpaUtil.creerEntityManager();
+            AdherentDao adao = new AdherentDao();
+            JpaUtil.fermerEntityManager();
+
+            return adao.findByMail(mail);
+        } catch (Throwable ex) {
+            throw new ServiceException("Le mail est inconnu");
+        }
+    }
+
+    /**
+     * Renvoi une activité en fonction de son nom
+     * Lance une Exception si l’activité n’est pas dans la base de données
+     * @param  name nom de l’activité
+     * @return      Activité recherchée
+     */
+    public Activite ObtenirActivite(String name) throws ServiceException
+    {
+        JpaUtil.creerEntityManager();
+        try {
+            return new ActiviteDao().findByName(name);
+        } catch (Throwable ex) {
+            throw new ServiceException("activité inexistante");
+        }
+    }
+
+    /**
+     * Renvoi un evenement en fonction de son ID, peut lancer des
+     * exceptions si aucun évenement ne correspond à l’id
+     * @param  id identifiant de l’evenement
+     * @return    Evenement correspondant à l’id
+     */
+    public Evenement ObtenirEvenement(Long id) throws ServiceException
+    {
+        try {
+            return new EvenementDao().findById(id);
+        } catch (Throwable ex) {
+            throw new ServiceException("evenement inexistant");
+        }
+    }
+
+    //------------- LECTURE DE LISTE DANS LA BASE DE DONNEES -------------
+
+    /**
+     * Permet de voir l’historique des demandes d’un adherent
+     * @param  AdherentId Id de l’adherent souhaité (peut se faire avec
+     *                    la méthode getId)
+     * @return            liste des demandes
+     */
+    public List<Demande> voirDemandes(Long AdherentId)
+    {
+        JpaUtil.creerEntityManager();
+        AdherentDao dao = new AdherentDao();
+        try {
+            return dao.findById(AdherentId).getDemandes();
+        } catch (Throwable ex) {
+            System.err.println("DEBUG: id non valide");
+            throw new ServiceException("Id non valide");
+        }
+    }
+
     /**
      * Permet de voir toutes les activités
      * @return Liste des activités
@@ -173,29 +235,18 @@ public class Service {
             return null;
         }
     }
-    
-    /**
-     * Affiche tous les évenements dans la base de données
-     * @return
-     */
-    public List<Evenement> VoirEvenements () throws Throwable
-    {
-        return new EvenementDao().findAll();
-    }
 
     /**
-     * Renvoi une activité en fonction de son nom
-     * Lance une Exception si l’activité n’est pas dans la base de données
-     * @param  name nom de l’activité
-     * @return      Activité recherchée
+     * Affiche tous les évenements dans la base de données.
+     * @return
      */
-    public Activite ObtenirActivite(String name) throws ServiceException
+    public List<Evenement> VoirEvenements ()
     {
-        JpaUtil.creerEntityManager();
-        try {
-            return new ActiviteDao().findByName(name);
-        } catch (Throwable ex) {
-            throw new ServiceException("activité inexistante")
+        try
+        {
+            return new EvenementDao().findAll();
+        } catch (Throwable e) {
+            return null;
         }
     }
 
@@ -203,7 +254,7 @@ public class Service {
      * Renvoi toutes les demandes
      * @return   Liste de demandes
      */
-    public List<Demande> getDemandes(Adherent a)
+    public List<Demande> voirDemandes()
     {
         JpaUtil.creerEntityManager();
         try {
@@ -212,27 +263,6 @@ public class Service {
             Logger.getLogger(Service.class.getName()).log(Level.SEVERE, null, ex);
             return null;
         }
-    }
-
-    public void EnvoyerMail () {} // Service Technique
-
-
-
-    /**
-     * Associe un évenement et un lieu
-     * @param evt
-     * @param lieu
-     */
-    public void AffecterLieux(Evenement evt, Lieu lieu) throws Throwable
-    {
-        evt.setLieu(lieu);
-        evt.setPlanifie(true);
-        JpaUtil.creerEntityManager();
-        JpaUtil.ouvrirTransaction();
-        new EvenementDao().update(evt);
-        JpaUtil.validerTransaction();
-        JpaUtil.fermerEntityManager();
-        ServiceTechnique.EnvoyerMail(evt);
     }
 
     /**
@@ -295,12 +325,25 @@ public class Service {
         }
     }
 
-    public Evenement ObtenirEvenement(Long id) throws Throwable {
-        try {
-            return new EvenementDao().findById(id);
-        } catch (Throwable ex) {
-            // TODO throw qque chose
-            throw ex;
-        }
+
+    //------------- MODIFICATION DANS LA BASE DE DONNEES -----------------
+
+
+    /**
+     * Associe un évenement et un lieu
+     * @param evt
+     * @param lieu
+     */
+    public void AffecterLieux(Evenement evt, Lieu lieu) throws Throwable
+    {
+        evt.setLieu(lieu);
+        evt.setPlanifie(true);
+        JpaUtil.creerEntityManager();
+        JpaUtil.ouvrirTransaction();
+        new EvenementDao().update(evt);
+        JpaUtil.validerTransaction();
+        JpaUtil.fermerEntityManager();
+        ServiceTechnique.EnvoyerMail(evt);
     }
+
 }
