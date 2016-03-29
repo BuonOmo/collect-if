@@ -42,18 +42,16 @@ public class AdherentDao {
     
     public Adherent findByMail(String mail) {
         EntityManager em = JpaUtil.obtenirEntityManager();
-        Adherent adherent = null;
-        Query q = em.createQuery("SELECT a FROM Adherent a WHERE a.mail=:mail");
-        q.setParameter("mail", mail);
+        Query q = em.createQuery("SELECT a FROM Adherent a WHERE a.mail=:email");
+        q.setParameter("email", mail);
         try
-        {
-            adherent = (Adherent) q.getSingleResult();
+        {            
+            return (Adherent) q.getSingleResult();
         } catch (Throwable e)
         {
-            System.err.println("DEBUG : mauvais email - "+mail);
             return null;
         }
-        return adherent;
+        
     }
     
     public List<Adherent> findAll() throws Throwable {

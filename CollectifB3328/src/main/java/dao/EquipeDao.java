@@ -8,59 +8,54 @@ package dao;
 import java.util.List;
 import javax.persistence.EntityManager;
 import javax.persistence.Query;
-import metier.modele.Adherent;
-import metier.modele.Evenement;
+import metier.modele.Equipe;
 
 /**
  *
- * @author pbayle
+ * @author Pierre
  */
-public class EvenementDao {
-    public void create(Evenement evenement) throws Throwable {
+public class EquipeDao {
+     public void create(Equipe equipe) throws Throwable {
         EntityManager em = JpaUtil.obtenirEntityManager();
         try {
-            em.persist(evenement);
+            em.persist(equipe);
         }
         catch(Exception e) {
             throw e;
         }
     }
     
-    public Evenement update(Evenement evenement) throws Throwable {
+    public Equipe update(Equipe equipe) throws Throwable {
         EntityManager em = JpaUtil.obtenirEntityManager();
         try {
-            return em.merge(evenement);
+            return em.merge(equipe);
         }
         catch(Exception e){
             throw e;
         }
     }
     
-    public Evenement findById(long id) throws Throwable {
+    public Equipe findById(long id) throws Throwable {
         EntityManager em = JpaUtil.obtenirEntityManager();
         try {
-            return em.find(Evenement.class, id);
+            return em.find(Equipe.class, id);
         }
         catch(Exception e) {
             return null;
         }
     }
     
-    public List<Evenement> findAll() throws Throwable {
+    public List<Equipe> findAll() throws Throwable {
         EntityManager em = JpaUtil.obtenirEntityManager();
-        List<Evenement> evenements = null;
+        List<Equipe> equipes = null;
         try {
-            Query q = em.createQuery("SELECT e FROM Evenement e");
-            evenements = (List<Evenement>) q.getResultList();
+            Query q = em.createQuery("SELECT e FROM Equipe e");
+            equipes = (List<Equipe>) q.getResultList();
         }
         catch(Exception e) {
             throw e;
         }
         
-        return evenements;
-    }
-
-    public List<Adherent> obtenirParticipants(Evenement evt) {               
-        return evt.getParticipants();
+        return equipes;
     }
 }
